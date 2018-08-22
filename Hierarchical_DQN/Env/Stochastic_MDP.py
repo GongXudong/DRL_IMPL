@@ -1,15 +1,20 @@
+import gym
+import numpy as np
 import random
 
-class StochasticMDPEnv:
+class StochasticMDPEnv(gym.Env):
 
     def __init__(self):
         self.visited_six = False
         self.current_state = 2
 
+        self.observation_space = gym.spaces.Box(low=np.array([1]), high=np.array([6]))
+        self.action_space = gym.spaces.Discrete(2)
+
     def reset(self):
         self.visited_six = False
         self.current_state = 2
-        return self.current_state
+        return np.array([self.current_state])
 
     def step(self, action):
         if self.current_state != 1:
@@ -27,8 +32,8 @@ class StochasticMDPEnv:
                 self.visited_six = True
         if self.current_state == 1:
             if self.visited_six:
-                return self.current_state, 1.00, True
+                return np.array([self.current_state]), 1.00, True, {}
             else:
-                return self.current_state, 1.00/100.00, True
+                return np.array([self.current_state]), 1.00/100.00, True, {}
         else:
-            return self.current_state, 0.0, False
+            return np.array([self.current_state]), 0.0, False, {}
