@@ -21,6 +21,13 @@ class ReplayBuffer(object):
     def __len__(self):
         return len(self._storage)
 
+    def show(self):
+        for item in self._storage:
+            print(item)
+            if item[2] > 0.01:
+                print('----------------------')
+        #print(np.sum(self._storage == (np.array([6]), 1, 1.0, np.array([1]), 1.0)))
+
     def add(self, obs_t, action, reward, obs_tp1, done):
         data = (obs_t, action, reward, obs_tp1, done)
 

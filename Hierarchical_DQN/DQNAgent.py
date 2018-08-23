@@ -11,7 +11,8 @@ class DQNAgent(object):
     """
     refs: https://github.com/skumar9876/Hierarchical-DQN/blob/master/dqn.py
     """
-    def __init__(self, states_n, actions_n, hidden_layers, scope_name, sess=None, learning_rate=0.001,
+    def __init__(self, states_n: tuple, actions_n: int, hidden_layers: list, scope_name: str,
+                 sess=None, learning_rate=0.001,
                  discount=0.98, replay_memory_size=100000, batch_size=32, begin_train=1000,
                  targetnet_update_freq=1000, epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_step=50000,
                  seed=1, logdir='logs'):
@@ -37,6 +38,7 @@ class DQNAgent(object):
         self.states_n = states_n
         self.actions_n = actions_n
         self._hidden_layers = hidden_layers
+        self._scope_name = scope_name
         self.lr = learning_rate
         self._target_net_update_freq = targetnet_update_freq
         self._current_time_step = 0
@@ -64,6 +66,8 @@ class DQNAgent(object):
             self._summary_writer = tf.summary.FileWriter(logdir=logdir)
             self._summary_writer.add_graph(tf.get_default_graph())
 
+    def show_memory(self):
+        print(self._replay_buffer.show())
 
     def _q_network(self, state, hidden_layers, outputs, scope_name, trainable):
 
@@ -77,8 +81,9 @@ class DQNAgent(object):
     def _build_graph(self):
         self._state = tf.placeholder(dtype=tf.float32, shape=(None, ) + self.states_n, name='state_input')
 
-        self._q_values = self._q_network(self._state, self._hidden_layers, self.actions_n, 'q_network', True)
-        self._target_q_values = self._q_network(self._state, self._hidden_layers, self.actions_n, 'target_q_network', False)
+        with tf.variable_scope(self._scope_name):
+            self._q_values = self._q_network(self._state, self._hidden_layers, self.actions_n, 'q_network', True)
+            self._target_q_values = self._q_network(self._state, self._hidden_layers, self.actions_n, 'target_q_network', False)
 
         with tf.variable_scope('q_network_update'):
             self._actions_onehot = tf.placeholder(dtype=tf.float32, shape=(None, self.actions_n), name='actions_onehot_input')
@@ -100,9 +105,11 @@ class DQNAgent(object):
 
 
             with tf.name_scope('target_network_update'):
-                q_network_params = [t for t in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='q_network')
-                                    if t.name.startswith('q_network/')]
-                target_q_network_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='target_q_network')
+                q_network_params = [t for t in tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                                                 scope=self._scope_name + '/q_network')
+                                    if t.name.startswith(self._scope_name + '/q_network/')]
+                target_q_network_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES,
+                                                            scope=self._scope_name + '/target_q_network')
 
                 self.target_update_ops = []
                 for var, var_target in zip(sorted(q_network_params, key=lambda v: v.name),
@@ -118,6 +125,10 @@ class DQNAgent(object):
             q_values = self.sess.run(self._q_values, feed_dict={self._state: state[None]})
 
             return np.argmax(q_values[0])
+
+    def check_network_output(self, state):
+        q_values = self.sess.run(self._q_values, feed_dict={self._state: state[None]})
+        print(q_values[0])
 
     def store(self, state, action, reward, next_state, terminate):
         self._replay_buffer.add(state, action, reward, next_state, terminate)
