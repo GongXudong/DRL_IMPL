@@ -117,9 +117,13 @@ class DQNAgent(object):
                     self.target_update_ops.append(var_target.assign(var))
                 self.target_update_ops = tf.group(*self.target_update_ops)
 
-    def choose_action(self, state):
+    def choose_action(self, state, epsilon=None):
 
-        if np.random.random() < self._epsilon_schedule.value(self._current_time_step):
+        if epsilon is not None:
+            epsilon_used = epsilon
+        else:
+            epsilon_used = self._epsilon_schedule.value(self._current_time_step)
+        if np.random.random() < epsilon_used:
             return np.random.randint(0, self.actions_n)
         else:
             q_values = self.sess.run(self._q_values, feed_dict={self._state: state[None]})

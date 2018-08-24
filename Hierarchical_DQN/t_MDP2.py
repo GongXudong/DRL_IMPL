@@ -2,13 +2,19 @@ import gym
 import time
 import numpy as np
 import tensorflow as tf
-from Hierarchical_DQN.H_DQNAgent1 import HierarchicalDQNAgent
+from Hierarchical_DQN.H_DQNAgent import HierarchicalDQNAgent
 from Hierarchical_DQN.Env.Stochastic_MDP import StochasticMDPEnv
+from common.schedules import LinearSchedule
 
-# subgoals = [np.array([0]), np.array([1]), np.array([2]), np.array([3]), np.array([4]), np.array([5])]
-subgoals = [np.array([0]), np.array([5])]
+subgoals = [np.array([0]), np.array([1]), np.array([2]), np.array([3]), np.array([4]), np.array([5])]
+# subgoals = [np.array([0]), np.array([5])]
 subgoals_num = len(subgoals)
 
+actor_epsilon = [1.] * subgoals_num
+meta_epsilon = 1.
+goal_select = [0] * subgoals_num
+goal_success = [0] * subgoals_num
+anneal_factor = (1. - 0.1)/12000
 
 def one_hot(st, depth=6):
     vector = np.zeros(depth)
@@ -21,6 +27,7 @@ def one_hot(st, depth=6):
 
 def get_controller_state(st, gl):
     return np.concatenate((st, gl), axis=0)
+
 
 if __name__ == '__main__':
 
@@ -41,7 +48,7 @@ if __name__ == '__main__':
     episode_lens = []
     episode_rewards = []
 
-    for i in range(1000):
+    for i in range(100000):
         state = env.reset()
 
         episode_len = 0
@@ -50,14 +57,17 @@ if __name__ == '__main__':
             # iter for the episode
 
             # select a goal
-            goal = agent.choose_goal(one_hot(state))
+            goal = agent.choose_goal(one_hot(state), epsilon=meta_epsilon)
+
+            goal_select[goal] += 1
 
             state0 = state
             total_external_reward = 0.
 
             while True:
                 # iter for a goal
-                action = agent.choose_action(one_hot(state), one_hot(goal, subgoals_num))
+                action = agent.choose_action(one_hot(state), one_hot(goal, subgoals_num),
+                                             epsilon=actor_epsilon[goal])
 
                 next_state, external_reward, done, _ = env.step(action)
 
@@ -80,6 +90,9 @@ if __name__ == '__main__':
                 total_external_reward += external_reward
                 state = next_state
 
+                if goal_reached:
+                    goal_success[goal] += 1
+
                 if goal_reached or done:
                     break
 
@@ -91,6 +104,18 @@ if __name__ == '__main__':
 
             agent.meta_controller.store(one_hot(state0), goal, total_external_reward, one_hot(next_state), done)
 
+            #Annealing
+            meta_epsilon -= anneal_factor
+            meta_epsilon = 0.1 if meta_epsilon < 0.1 else meta_epsilon
+
+            actor_epsilon[goal] -= anneal_factor
+            # avg_success_rate = goal_success[goal] / goal_select[goal]
+            # if avg_success_rate == 0. or avg_success_rate == 1.:
+            #     actor_epsilon[goal] -= anneal_factor
+            # else:
+            #     actor_epsilon[goal] = 1 - avg_success_rate
+            actor_epsilon[goal] = 0.1 if actor_epsilon[goal] < 0.1 else actor_epsilon[goal]
+
             if done:
                 break
 
@@ -98,11 +123,12 @@ if __name__ == '__main__':
         episode_lens.append(episode_len)
         episode_rewards.append(episode_reward)
         if i % 1000 == 999:
-            print('averaged lens: {}    averaged rewards: {}'.format(np.mean(episode_lens[-1000:]),
-                                                                     np.mean(episode_rewards[-1000:])))
+            print('episode:{}   averaged_lens: {}   averaged_rewards: {}'.format(int((i+1)/1000),
+                                                                                 np.mean(episode_lens[-1000:]),
+                                                                                 np.mean(episode_rewards[-1000:])))
             time.sleep(2)
 
-    agent.meta_controller.show_memory()
+    # agent.meta_controller.show_memory()
     env.close()
 
 
