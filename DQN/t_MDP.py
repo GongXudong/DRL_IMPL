@@ -1,9 +1,7 @@
-import gym
 import time
 import numpy as np
-import tensorflow as tf
-from Hierarchical_DQN.DQNAgent import DQNAgent
-from Hierarchical_DQN.Env.Stochastic_MDP import StochasticMDPEnv
+from DQN.DQNAgent import DQNAgent
+from Env.Stochastic_MDP import StochasticMDPEnv
 
 if __name__ == '__main__':
 

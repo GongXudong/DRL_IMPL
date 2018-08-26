@@ -1,8 +1,7 @@
 
 import tensorflow as np
 import numpy as np
-import time
-from Hierarchical_DQN.DQNAgent import DQNAgent
+from DQN.DQNAgent import DQNAgent
 
 # refs: https://github.com/skumar9876/Hierarchical-DQN/blob/master/hierarchical_dqn.py
 # 设置目标等操作放在外面
@@ -18,7 +17,7 @@ class HierarchicalDQNAgent(object):
                  meta_controller_hidden_layers=[32, 32, 32],
                  discount=0.99,
                  controller_lr=0.1, meta_controller_lr=0.0001,
-                 subgoals=None,
+                 subgoals_num=None,
                  epsilon_decay_step=10000,
                  epsilon_end=0.02):
         """
@@ -35,8 +34,7 @@ class HierarchicalDQNAgent(object):
         (a function that checks whether the state achieves subgoals[goal_num])
         """
 
-        self._subgoals = subgoals
-        self._num_subgoals = 0 if subgoals is None else len(subgoals)
+        self._num_subgoals = subgoals_num
 
         self.meta_controller = DQNAgent(states_n=meta_controller_states_n,
                                         actions_n=self._num_subgoals,

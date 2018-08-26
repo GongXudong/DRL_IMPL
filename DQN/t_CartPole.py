@@ -1,8 +1,5 @@
 import gym
-import time
-import numpy as np
-import tensorflow as tf
-from Hierarchical_DQN.DQNAgent import DQNAgent
+from DQN.DQNAgent import DQNAgent
 
 DEBUG = False
 

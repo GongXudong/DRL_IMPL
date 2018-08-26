@@ -4,7 +4,7 @@ import tensorflow.contrib.layers as layers
 import numpy as np
 import random
 from common.schedules import LinearSchedule
-from Hierarchical_DQN.replay_buffer import ReplayBuffer
+from common.replay_buffer import ReplayBuffer
 
 
 class DQNAgent(object):

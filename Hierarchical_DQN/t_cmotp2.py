@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from Hierarchical_DQN.H_DQNAgent import HierarchicalDQNAgent
-from Env.Stochastic_MDP import StochasticMDPEnv
+from Env.cmotp import CMOTP
 
 subgoals = [np.array([0]), np.array([1]), np.array([2]), np.array([3]), np.array([4]), np.array([5])]
 # subgoals = [np.array([0]), np.array([5])]
@@ -12,6 +12,12 @@ meta_epsilon = 1.
 goal_select = [0] * subgoals_num
 goal_success = [0] * subgoals_num
 anneal_factor = (1. - 0.1)/12000
+
+def check_subgoal_reached(st, subgoal_index):
+    if subgoal_index == 0:
+        return np.all(st == np.float32(np.array([2, 2, 2, 2, 4, 3])))
+    if subgoal_index == 1:
+        return
 
 def one_hot(st, depth=6):
     vector = np.zeros(depth)
@@ -26,9 +32,13 @@ def get_controller_state(st, gl):
     return np.concatenate((st, gl), axis=0)
 
 
+
+
+
+
 if __name__ == '__main__':
 
-    env = StochasticMDPEnv()
+    env = CMOTP()
 
 
     INTRINSIC_REWARD = 1.
@@ -39,7 +49,7 @@ if __name__ == '__main__':
     agent = HierarchicalDQNAgent(original_states_n=(6, ),
                                  meta_controller_states_n=(6, ),
                                  actions_n=env.action_space.n,
-                                 subgoals_num=subgoals_num,
+                                 subgoals=subgoals,
                                  epsilon_decay_step=10000,
                                  epsilon_end=0.02)
     episode_lens = []

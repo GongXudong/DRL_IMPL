@@ -1,9 +1,6 @@
-import gym
 import time
 import numpy as np
-import tensorflow as tf
-from Hierarchical_DQN.DQNAgent import DQNAgent
-from Hierarchical_DQN.Env.Stochastic_MDP import StochasticMDPEnv
+from Env.Stochastic_MDP import StochasticMDPEnv
 
 if __name__ == '__main__':
 
@@ -18,6 +15,7 @@ if __name__ == '__main__':
         episode_reward = 0
         while True:
             action = np.random.choice([0, 1])
+            # action = 1
             next_state, reward, done, _ = env.step(action)
             episode_len += 1
             episode_reward += reward
