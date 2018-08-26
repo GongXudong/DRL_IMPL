@@ -12,9 +12,9 @@ def get_state(st: np.ndarray, gl: np.ndarray) -> np.ndarray:
 
     :param st: np.array([1, 2])
     :param gl: np.array([3, 4])
-    :return: np.array([[1, 2], [3, 4]])
+    :return: np.array([1, 2, 3, 4])
     """
-    return np.concatenate((st, gl), axis=0)[np.newaxis, :]
+    return np.concatenate((st, gl), axis=0)
 
 
 def get_reward_by_goal(st: np.ndarray, gl: np.ndarray) -> int:
@@ -42,7 +42,7 @@ if __name__ == '__main__':
 
     for episode_iter in range(EPISODES_NUM):
         state, goal = env.reset()
-
+        print(state.shape, goal.shape, get_state(state, goal).shape)
         reward_of_this_episode = 0
         len_of_this_episode = 0
         episode_record = []
@@ -59,7 +59,7 @@ if __name__ == '__main__':
             reward_of_this_episode += reward
             state = next_state
 
-            if done or len >= max_episode_len:
+            if done or len_of_this_episode >= max_episode_len:
                 break
 
         rewards_record.append(reward_of_this_episode)
