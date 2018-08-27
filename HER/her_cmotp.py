@@ -7,6 +7,8 @@ FUTURE_SAMPLE_NUM = 100
 
 TRAIN_NUM_PER_EPISODE = 100
 
+MAX_EPISODE_LEN = 2000
+
 TEST_NUM = 10
 
 TRAIN = True
@@ -42,7 +44,7 @@ if __name__ == '__main__':
                      hidden_layers=[256, 512],
                      scope_name='cmotp',
                      learning_rate=1e-4,
-                     replay_memory_size=500000,
+                     replay_memory_size=50000,
                      batch_size=32,
                      targetnet_update_freq=1000,
                      epsilon_end=0.05,
@@ -70,7 +72,7 @@ if __name__ == '__main__':
                 len_this_episode += 1
                 state = next_state
 
-                if done:
+                if done or len_this_episode >= MAX_EPISODE_LEN:
                     break
             episode_len.append(len_this_episode)
 
@@ -95,16 +97,16 @@ if __name__ == '__main__':
     for i in range(TEST_NUM):
         state = env.reset()
         goal = goals[1]
-        len_of_this_episode = 0
+        len_this_episode = 0
         while True:
             action = agent.choose_action(get_state(state, goal), 0.02)
             next_state, reward, done, _ = env.step(action)
             print('action: ', action)
             print('next_state: ', next_state)
             state = next_state
-            len_of_this_episode += 1
+            len_this_episode += 1
             if done:
-                print('test_{}: action_num={}'.format(i, len_of_this_episode))
+                print('test_{}: action_num={}'.format(i, len_this_episode))
                 break
 
 
