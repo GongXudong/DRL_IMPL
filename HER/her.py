@@ -2,12 +2,14 @@ from Env.BitsGame import BitsGame
 from DQN.DQNAgent import DQNAgent
 import numpy as np
 
-EPISODES_NUM = 50000
+EPISODES_NUM = 10000
 FUTURE_SAMPLE_NUM = 5
 
 TRAIN_NUM_PER_EPISODE = 10
 
 TEST_NUM = 10
+
+TRAIN = False
 
 def get_state(st: np.ndarray, gl: np.ndarray) -> np.ndarray:
     """
@@ -39,46 +41,49 @@ if __name__ == '__main__':
                      epsilon_end=0.05,
                      epsilon_decay_step=10000)
 
-    max_episode_len = env.observation_space.shape[0]
-    rewards_record = []
+    if TRAIN:
+        max_episode_len = env.observation_space.shape[0]
+        rewards_record = []
 
-    for episode_iter in range(EPISODES_NUM):
-        state, goal = env.reset()
-        reward_of_this_episode = 0
-        len_of_this_episode = 0
-        episode_record = []
+        for episode_iter in range(EPISODES_NUM):
+            state, goal = env.reset()
+            reward_of_this_episode = 0
+            len_of_this_episode = 0
+            episode_record = []
 
-        while True:
+            while True:
 
-            action = agent.choose_action(get_state(state, goal))
-            next_state, reward, done, _ = env.step(action)
+                action = agent.choose_action(get_state(state, goal))
+                next_state, reward, done, _ = env.step(action)
 
-            episode_record.append((state, action, reward, next_state, done, goal))
-            agent.store(get_state(state, goal), action, reward, get_state(next_state, goal), done)
+                episode_record.append((state, action, reward, next_state, done, goal))
+                agent.store(get_state(state, goal), action, reward, get_state(next_state, goal), done)
 
-            len_of_this_episode += 1
-            reward_of_this_episode += reward
-            state = next_state
+                len_of_this_episode += 1
+                reward_of_this_episode += reward
+                state = next_state
 
-            if done or len_of_this_episode >= max_episode_len:
-                break
+                if done or len_of_this_episode >= max_episode_len:
+                    break
 
-        rewards_record.append(reward_of_this_episode)
+            rewards_record.append(reward_of_this_episode)
 
-        # hindsight
-        for i in range(len_of_this_episode):
-            st, ac, rw, nxt_st, dn, gl = episode_record[i]
-            for k in range(FUTURE_SAMPLE_NUM):
-                idx = np.random.randint(i, len_of_this_episode)
-                _, _, _, nx_gl, _, _ = episode_record[idx]
-                agent.store(get_state(st, nx_gl), ac, get_reward_by_goal(st, nx_gl), get_state(nxt_st, nx_gl), dn)
+            # hindsight
+            for i in range(len_of_this_episode):
+                st, ac, rw, nxt_st, dn, gl = episode_record[i]
+                for k in range(FUTURE_SAMPLE_NUM):
+                    idx = np.random.randint(i, len_of_this_episode)
+                    _, _, _, nx_gl, _, _ = episode_record[idx]
+                    agent.store(get_state(st, nx_gl), ac, get_reward_by_goal(st, nx_gl), get_state(nxt_st, nx_gl), dn)
 
-        # train
-        for i in range(TRAIN_NUM_PER_EPISODE):
-            agent.train()
+            # train
+            for i in range(TRAIN_NUM_PER_EPISODE):
+                agent.train()
 
-        if episode_iter % 1000 == 999:
-            print('episode {}, ave reward: {}'.format((episode_iter + 1), np.mean(rewards_record[-100:])))
+            if episode_iter % 1000 == 999:
+                print('episode {}, ave reward: {}'.format((episode_iter + 1), np.mean(rewards_record[-100:])))
+    else:
+        agent.load_model()
 
     # test
     for i in range(TEST_NUM):
@@ -88,12 +93,18 @@ if __name__ == '__main__':
         print('optima action_num:', np.sum(state != goal, axis=0))
         len_of_this_episode = 0
         while True:
-            action = agent.choose_action(get_state(state, goal))
+            action = agent.choose_action(get_state(state, goal), 0.02)
             next_state, reward, done, _ = env.step(action)
             print('action: ', action)
             print('next_state: ', next_state)
             state = next_state
             len_of_this_episode += 1
             if done:
+                print('actual action_num: ', len_of_this_episode)
+                print()
                 break
-        print('actual action_num: ', len_of_this_episode)
+            if len_of_this_episode >= env.observation_space.shape[0]:
+                print('failure!!!!')
+                print()
+                break
+

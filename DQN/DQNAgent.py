@@ -15,7 +15,7 @@ class DQNAgent(object):
                  sess=None, learning_rate=0.001,
                  discount=0.98, replay_memory_size=100000, batch_size=32, begin_train=1000,
                  targetnet_update_freq=1000, epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_step=50000,
-                 seed=1, logdir='logs'):
+                 seed=1, logdir='logs', savedir='save', save_freq=10000):
         """
 
         :param states_n: tuple
@@ -47,6 +47,9 @@ class DQNAgent(object):
         self._begin_train = begin_train
         self._gamma = discount
 
+        self.savedir = savedir
+        self.save_freq = save_freq
+
         self.qnet_optimizer = tf.train.AdamOptimizer(self.lr)
 
         self._replay_buffer = ReplayBuffer(replay_memory_size)
@@ -56,12 +59,14 @@ class DQNAgent(object):
         with tf.Graph().as_default():
             self._build_graph()
             self._merged_summary = tf.summary.merge_all()
-            self._saver = tf.train.Saver()
+
             if sess is None:
                 self.sess = tf.Session()
             else:
                 self.sess = sess
             self.sess.run(tf.global_variables_initializer())
+
+            self._saver = tf.train.Saver()
 
             self._summary_writer = tf.summary.FileWriter(logdir=logdir)
             self._summary_writer.add_graph(tf.get_default_graph())
@@ -170,8 +175,17 @@ class DQNAgent(object):
 
             self._summary_writer.add_summary(str_, self._current_time_step)
 
+        # update target_net
         if self._current_time_step % self._target_net_update_freq == 0:
             self.sess.run(self.target_update_ops)
+
+        # save model
+        if self._current_time_step % self.save_freq == 0:
+            self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
+                             global_step=self._current_time_step)
+
+    def load_model(self):
+        self._saver.restore(self.sess, tf.train.latest_checkpoint('save/'))
 
     def _seed(self, lucky_number):
         tf.set_random_seed(lucky_number)
