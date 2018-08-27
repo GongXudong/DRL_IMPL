@@ -181,6 +181,8 @@ class DQNAgent(object):
 
         # save model
         if self._current_time_step % self.save_freq == 0:
+
+            # TODO save the model with highest performance
             self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
                              global_step=self._current_time_step)
 

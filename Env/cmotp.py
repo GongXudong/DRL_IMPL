@@ -4,6 +4,10 @@ import numpy as np
 
 
 class CMOTP(gym.Env):
+    """
+    if used random policy, the expect of episode length is about 1400
+    """
+
     GRASP_STATE = Enum('GRASP_STATE', ('FREE', 'GRASPING_LEFT', 'GRASPING_RIGHT'))
 
     def __init__(self):
@@ -12,7 +16,6 @@ class CMOTP(gym.Env):
         self.action_space = gym.spaces.Discrete(25)
         self.observation_space = gym.spaces.Box(low=np.array([0, 0, 1, 0, 0, 1]), high=np.array([5, 6, 3, 5, 6, 3]),
                                                 dtype=np.int32)
-        np.random.choice()
 
     def reset(self):
         # 1 -> Agent1, 2 -> Agent2, 0 -> passibal region, -1 -> walls, 3 -> goods
