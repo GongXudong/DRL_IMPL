@@ -2,10 +2,12 @@ from Env.BitsGame import BitsGame
 from DQN.DQNAgent import DQNAgent
 import numpy as np
 
-EPISODES_NUM = 10000
+EPISODES_NUM = 50000
 FUTURE_SAMPLE_NUM = 5
 
 TRAIN_NUM_PER_EPISODE = 10
+
+TEST_NUM = 10
 
 def get_state(st: np.ndarray, gl: np.ndarray) -> np.ndarray:
     """
@@ -42,7 +44,6 @@ if __name__ == '__main__':
 
     for episode_iter in range(EPISODES_NUM):
         state, goal = env.reset()
-        print(state.shape, goal.shape, get_state(state, goal).shape)
         reward_of_this_episode = 0
         len_of_this_episode = 0
         episode_record = []
@@ -73,8 +74,26 @@ if __name__ == '__main__':
                 agent.store(get_state(st, nx_gl), ac, get_reward_by_goal(st, nx_gl), get_state(nxt_st, nx_gl), dn)
 
         # train
-        agent.train()
+        for i in range(TRAIN_NUM_PER_EPISODE):
+            agent.train()
 
+        if episode_iter % 1000 == 999:
+            print('episode {}, ave reward: {}'.format((episode_iter + 1), np.mean(rewards_record[-100:])))
 
-
-
+    # test
+    for i in range(TEST_NUM):
+        state, goal = env.reset()
+        print('state: ', state)
+        print('goal: ', goal)
+        print('optima action_num:', np.sum(state != goal, axis=0))
+        len_of_this_episode = 0
+        while True:
+            action = agent.choose_action(get_state(state, goal))
+            next_state, reward, done, _ = env.step(action)
+            print('action: ', action)
+            print('next_state: ', next_state)
+            state = next_state
+            len_of_this_episode += 1
+            if done:
+                break
+        print('actual action_num: ', len_of_this_episode)
