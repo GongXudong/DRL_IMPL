@@ -44,11 +44,11 @@ if __name__ == '__main__':
                      hidden_layers=[256, 512],
                      scope_name='cmotp',
                      learning_rate=1e-4,
-                     replay_memory_size=50000,
-                     batch_size=32,
-                     targetnet_update_freq=1000,
+                     replay_memory_size=100000,
+                     batch_size=64,
+                     targetnet_update_freq=5000,
                      epsilon_end=0.05,
-                     epsilon_decay_step=20000)
+                     epsilon_decay_step=500000)
 
     episode_len = []
 
