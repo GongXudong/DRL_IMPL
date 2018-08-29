@@ -1,5 +1,5 @@
 
-from Env.cmotp import CMOTP
+from Env.cmotp_JAL import CMOTP
 from DQN.DQNAgent import DQNAgent
 from Lenient.temperature_record import Temp_record
 import time
@@ -56,7 +56,7 @@ if __name__ == '__main__':
             state = env.reset()
             while True:
                 env.render()
-                time.sleep(2)
+                time.sleep(1)
                 action = agent.choose_action(state, epsilon=0.05)
                 action_n = [int(action % 5), int(action / 5)]
                 next_state, reward, done, _ = env.step(action_n)

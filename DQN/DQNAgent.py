@@ -12,7 +12,7 @@ class DQNAgent(object):
     refs: https://github.com/skumar9876/Hierarchical-DQN/blob/master/dqn.py
     """
     def __init__(self, states_n: tuple, actions_n: int, hidden_layers: list, scope_name: str,
-                 sess=None, learning_rate=0.001,
+                 sess=None, learning_rate=1e-4,
                  discount=0.98, replay_memory_size=100000, batch_size=32, begin_train=1000,
                  targetnet_update_freq=1000, epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_step=50000,
                  seed=1, logdir='logs', savedir='save', save_freq=10000):

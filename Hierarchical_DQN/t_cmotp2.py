@@ -1,7 +1,7 @@
 import time
 import numpy as np
 from Hierarchical_DQN.H_DQNAgent import HierarchicalDQNAgent
-from Env.cmotp import CMOTP
+from Env.cmotp_JAL import CMOTP
 
 subgoals = [np.array([0]), np.array([1]), np.array([2]), np.array([3]), np.array([4]), np.array([5])]
 # subgoals = [np.array([0]), np.array([5])]

@@ -11,10 +11,10 @@ from Lenient.leniency_calculator import LeniencyCalculator
 
 class LenientDQNAgent(object):
 
-    def __init__(self, states_n: tuple, actions_n: int, env, hidden_layers: list, scope_name: str,
-                 sess=None, learning_rate=0.001,
+    def __init__(self, env, hidden_layers: list, scope_name: str,
+                 sess=None, learning_rate=1e-4,
                  discount=0.98, replay_memory_size=100000, batch_size=32, begin_train=1000,
-                 targetnet_update_freq=1000, epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_step=50000,
+                 targetnet_update_freq=1000,
                  seed=1, logdir='logs', savedir='save', save_freq=10000):
         """
 
@@ -35,14 +35,13 @@ class LenientDQNAgent(object):
         :param seed: int
         :param logdir: str
         """
-        self.states_n = states_n
-        self.actions_n = actions_n
+        self.states_n = env.observation_space.shape
+        self.actions_n = env.action_space.n
         self._hidden_layers = hidden_layers
         self._scope_name = scope_name
         self.lr = learning_rate
         self._target_net_update_freq = targetnet_update_freq
         self._current_time_step = 0
-        self._epsilon_schedule = LinearSchedule(epsilon_decay_step, epsilon_end, epsilon_start)
         self._train_batch_size = batch_size
         self._begin_train = begin_train
         self._gamma = discount

@@ -1,4 +1,4 @@
-from Env.cmotp import CMOTP
+from Env.cmotp_JAL import CMOTP
 import numpy as np
 
 if __name__ == '__main__':

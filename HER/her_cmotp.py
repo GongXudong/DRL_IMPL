@@ -1,4 +1,4 @@
-from Env.cmotp import CMOTP
+from Env.cmotp_JAL import CMOTP
 from DQN.DQNAgent import DQNAgent
 import numpy as np
 
