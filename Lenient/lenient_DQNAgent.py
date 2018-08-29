@@ -89,7 +89,6 @@ class LenientDQNAgent(object):
 
     def _build_graph(self):
         self._state = tf.placeholder(dtype=tf.float32, shape=(None, ) + self.states_n, name='state_input')
-
         with tf.variable_scope(self._scope_name):
             self._q_values = self._q_network(self._state, self._hidden_layers, self.actions_n, 'q_network', True)
             self._target_q_values = self._q_network(self._state, self._hidden_layers, self.actions_n, 'target_q_network', False)
@@ -101,14 +100,17 @@ class LenientDQNAgent(object):
 
             # lenient
             self._leniencies = tf.placeholder(dtype=tf.float32, shape=(None, ), name='leniencies')
-
             deltas = self._q_values_pred - self._td_targets
 
             batch_size = tf.shape(self._td_targets)[0]
+            print(batch_size)
             rand_x = tf.random_uniform((batch_size, ), minval=0., maxval=1., dtype=tf.float32)
 
             cond = tf.logical_or(rand_x > self._leniencies, deltas > 0)
-            zeros = tf.constant(0., dtype=tf.float32)
+
+            zeros = tf.constant(0., dtype=tf.float32, shape=(batch_size, ))
+
+            print(zeros.shape)
             real_deltas = tf.where(cond, deltas, zeros)
 
             self._error = tf.abs(real_deltas)

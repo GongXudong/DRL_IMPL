@@ -8,7 +8,7 @@ class Temp_record(object):
         """
 
         :param shape: (s, a)
-        :param beta_len: 
+        :param beta_len:
         :param beta_p:
         :param beta_d:
         :param v:
