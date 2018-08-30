@@ -16,7 +16,7 @@ if __name__ == '__main__':
     env = CMOTP()
     agent = DQNAgent(env.observation_space.shape, env.action_space.n, [512, 512], 'cmotp',
                      epsilon_decay_step=10000, epsilon_end=0.05, replay_memory_size=100000,
-                     learning_rate=1e-4, targetnet_update_freq=5000)
+                     learning_rate=1e-4, targetnet_update_freq=5000, tau=1.)
     if TRAIN:
         temp_record = Temp_record(shape=tuple(env.observation_space.high + 1) + (env.action_space.n, ), beta_len=1500)
 

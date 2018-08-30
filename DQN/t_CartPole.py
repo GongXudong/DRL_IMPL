@@ -9,7 +9,7 @@ if __name__ == '__main__':
     print((None,) + env.observation_space.shape, env.action_space.n)
     agent = DQNAgent(env.observation_space.shape, env.action_space.n, [64], 'cartpole',
                      epsilon_decay_step=10000, epsilon_end=0.02, replay_memory_size=50000,
-                     learning_rate=5e-4)
+                     learning_rate=5e-4, tau=1.)
 
     for i in range(10000):
         state = env.reset()

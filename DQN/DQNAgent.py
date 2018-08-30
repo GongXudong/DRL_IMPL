@@ -15,7 +15,7 @@ class DQNAgent(object):
                  sess=None, learning_rate=1e-4,
                  discount=0.98, replay_memory_size=100000, batch_size=32, begin_train=1000,
                  targetnet_update_freq=1000, epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_step=50000,
-                 seed=1, logdir='logs', savedir='save', save_freq=10000):
+                 seed=1, logdir='logs', savedir='save', save_freq=10000, tau=0.01):
         """
 
         :param states_n: tuple
@@ -46,6 +46,8 @@ class DQNAgent(object):
         self._train_batch_size = batch_size
         self._begin_train = begin_train
         self._gamma = discount
+
+        self._tau = tau
 
         self.savedir = savedir
         self.save_freq = save_freq
@@ -119,7 +121,11 @@ class DQNAgent(object):
                 self.target_update_ops = []
                 for var, var_target in zip(sorted(q_network_params, key=lambda v: v.name),
                                            sorted(target_q_network_params, key=lambda v: v.name)):
-                    self.target_update_ops.append(var_target.assign(var))
+                    # self.target_update_ops.append(var_target.assign(var))
+
+                    # soft target update
+                    self.target_update_ops.append(var_target.assign(tf.multiply(var_target, 1 - self._tau) +
+                                                                    tf.multiply(var, self._tau)))
                 self.target_update_ops = tf.group(*self.target_update_ops)
 
     def choose_action(self, state, epsilon=None):
