@@ -103,14 +103,12 @@ class LenientDQNAgent(object):
             deltas = self._q_values_pred - self._td_targets
 
             batch_size = tf.shape(self._td_targets)[0]
-            print(batch_size)
             rand_x = tf.random_uniform((batch_size, ), minval=0., maxval=1., dtype=tf.float32)
 
             cond = tf.logical_or(rand_x > self._leniencies, deltas > 0)
 
-            zeros = tf.constant(0., dtype=tf.float32, shape=(batch_size, ))
+            zeros = tf.zeros_like(rand_x)
 
-            print(zeros.shape)
             real_deltas = tf.where(cond, deltas, zeros)
 
             self._error = tf.abs(real_deltas)
@@ -140,9 +138,11 @@ class LenientDQNAgent(object):
                     self.target_update_ops.append(var_target.assign(var))
                 self.target_update_ops = tf.group(*self.target_update_ops)
 
-    def choose_action(self, state):
-
-        epsilon_used = pow(self.temp_recorder.get_state_temp(state), self.ts_greedy_coeff)
+    def choose_action(self, state, epsilon=None):
+        if epsilon is None:
+            epsilon_used = pow(self.temp_recorder.get_state_temp(state), self.ts_greedy_coeff)
+        else:
+            epsilon_used = epsilon
 
         if np.random.random() < epsilon_used:
             return np.random.randint(0, self.actions_n)
@@ -150,6 +150,7 @@ class LenientDQNAgent(object):
             q_values = self.sess.run(self._q_values, feed_dict={self._state: state[None]})
 
             return np.argmax(q_values[0])
+
 
     def check_network_output(self, state):
         q_values = self.sess.run(self._q_values, feed_dict={self._state: state[None]})
@@ -204,7 +205,7 @@ class LenientDQNAgent(object):
                              global_step=self._current_time_step)
 
     def load_model(self):
-        self._saver.restore(self.sess, tf.train.latest_checkpoint('save/'))
+        self._saver.restore(self.sess, tf.train.latest_checkpoint(self.savedir))
 
     def _seed(self, lucky_number):
         tf.set_random_seed(lucky_number)

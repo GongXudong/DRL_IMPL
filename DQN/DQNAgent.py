@@ -187,7 +187,7 @@ class DQNAgent(object):
                              global_step=self._current_time_step)
 
     def load_model(self):
-        self._saver.restore(self.sess, tf.train.latest_checkpoint('save/'))
+        self._saver.restore(self.sess, tf.train.latest_checkpoint(self.savedir))
 
     def _seed(self, lucky_number):
         tf.set_random_seed(lucky_number)

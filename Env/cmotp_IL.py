@@ -16,8 +16,9 @@ class CMOTP(gym.Env):
         self.move_delta = [(0, 0), (-1, 0), (0, 1), (1, 0), (0, -1)]
         self.viewer = None
         self.action_space = gym.spaces.Discrete(5)
-        self.observation_space = gym.spaces.Box(low=np.array([0, 0, 1]), high=np.array([5, 6, 3]),
+        self.observation_space = gym.spaces.Box(low=np.array([0, 0, 1, 0, 0, 1]), high=np.array([5, 6, 3, 5, 6, 3]),
                                                 dtype=np.int32)
+
 
     def reset(self):
         # 1 -> Agent1, 2 -> Agent2, 0 -> passibal region, -1 -> walls, 3 -> goods
@@ -29,8 +30,8 @@ class CMOTP(gym.Env):
                     [1, 0, 0, 0, 2, 0, -1]]
         self.map_size = (len(self.map), len(self.map[0]))
         self.home_region = [(0, 2), (0, 3), (0, 4)]
-        return np.float32(np.array((5, 0, self.GRASP_STATE.FREE.value))), \
-               np.float32(np.array((5, 4, self.GRASP_STATE.FREE.value)))
+        return np.float32(np.array((5, 0, self.GRASP_STATE.FREE.value, 5, 4, self.GRASP_STATE.FREE.value))), \
+               np.float32(np.array((5, 0, self.GRASP_STATE.FREE.value, 5, 4, self.GRASP_STATE.FREE.value)))
 
     def step(self, action_n):
         # validate actions
@@ -67,8 +68,8 @@ class CMOTP(gym.Env):
             terminate = True
 
         # return (self.map, self.map), (reward, reward), (terminate, terminate), ({}, {})
-        return (np.float32(np.array((*new_pos_agent1, agent1_grasp_state.value))), \
-               np.float32(np.array((*new_pos_agent2, agent2_grasp_state.value)))), \
+        return (np.float32(np.array((*new_pos_agent1, agent1_grasp_state.value, *new_pos_agent2, agent2_grasp_state.value))),
+                np.float32(np.array((*new_pos_agent1, agent1_grasp_state.value, *new_pos_agent2, agent2_grasp_state.value)))), \
                (reward, reward), (terminate, terminate), ({}, {})
 
     def render(self, mode='human'):
