@@ -8,6 +8,8 @@ class CMOTP(gym.Env):
     if used random policy, the expect of episode length is about 1400,
     the expect of episode length of task 1(grasp the good) is about 887,
     eht expect of episode length of task 2(transport the good to the home) is about 515
+
+    action: 0 -> stay, 1 -> north, 2 -> east, 3 -> south, 4 -> west
     """
 
     GRASP_STATE = Enum('GRASP_STATE', ('FREE', 'GRASPING_LEFT', 'GRASPING_RIGHT'))

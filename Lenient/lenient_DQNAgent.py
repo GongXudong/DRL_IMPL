@@ -15,7 +15,9 @@ class LenientDQNAgent(object):
                  sess=None, learning_rate=1e-4,
                  discount=0.98, replay_memory_size=100000, batch_size=32, begin_train=1000,
                  targetnet_update_freq=1000,
-                 seed=1, logdir='logs', savedir='save', save_freq=10000):
+                 seed=1, logdir='logs',
+                 savedir='save', auto_save=True, save_freq=10000,
+                 use_tau=False, tau=0.001):
         """
 
         :param states_n: tuple
@@ -46,6 +48,10 @@ class LenientDQNAgent(object):
         self._begin_train = begin_train
         self._gamma = discount
 
+        self._use_tau = use_tau
+        self._tau = tau
+
+        self._auto_save = auto_save
         self.savedir = savedir
         self.save_freq = save_freq
 
@@ -100,7 +106,8 @@ class LenientDQNAgent(object):
 
             # lenient
             self._leniencies = tf.placeholder(dtype=tf.float32, shape=(None, ), name='leniencies')
-            deltas = self._q_values_pred - self._td_targets
+            # deltas = self._q_values_pred - self._td_targets
+            deltas = self._td_targets - self._q_values_pred
 
             batch_size = tf.shape(self._td_targets)[0]
             rand_x = tf.random_uniform((batch_size, ), minval=0., maxval=1., dtype=tf.float32)
@@ -135,7 +142,11 @@ class LenientDQNAgent(object):
                 self.target_update_ops = []
                 for var, var_target in zip(sorted(q_network_params, key=lambda v: v.name),
                                            sorted(target_q_network_params, key=lambda v: v.name)):
-                    self.target_update_ops.append(var_target.assign(var))
+                    # self.target_update_ops.append(var_target.assign(var))
+
+                    # soft target update
+                    self.target_update_ops.append(var_target.assign(tf.multiply(var_target, 1 - self._tau) +
+                                                                    tf.multiply(var, self._tau)))
                 self.target_update_ops = tf.group(*self.target_update_ops)
 
     def choose_action(self, state, epsilon=None):
@@ -158,6 +169,20 @@ class LenientDQNAgent(object):
 
     def store(self, state, action, reward, next_state, terminate, leniency):
         self._replay_buffer.add(state, action, reward, next_state, terminate, leniency)
+
+    def get_max_target_Q_s_a(self, next_states):
+        next_state_q_values = self.sess.run(self._q_values, feed_dict={self._state: next_states})
+        next_state_target_q_values = self.sess.run(self._target_q_values, feed_dict={self._state: next_states})
+
+        next_select_actions = np.argmax(next_state_q_values, axis=1)
+        bt_sz = len(next_states)
+        next_select_actions_onehot = np.zeros((bt_sz, self.actions_n))
+        for i in range(bt_sz):
+            next_select_actions_onehot[i, next_select_actions[i]] = 1.
+
+        next_state_max_q_values = np.sum(next_state_target_q_values * next_select_actions_onehot, axis=1)
+        return next_state_max_q_values
+
 
     def train(self):
 
@@ -194,15 +219,58 @@ class LenientDQNAgent(object):
             self._summary_writer.add_summary(str_, self._current_time_step)
 
         # update target_net
-        if self._current_time_step % self._target_net_update_freq == 0:
+        if self._use_tau:
             self.sess.run(self.target_update_ops)
+        else:
+            if self._current_time_step % self._target_net_update_freq == 0:
+                self.sess.run(self.target_update_ops)
 
         # save model
-        if self._current_time_step % self.save_freq == 0:
+        if self._auto_save:
+            if self._current_time_step % self.save_freq == 0:
 
-            # TODO save the model with highest performance
-            self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
-                             global_step=self._current_time_step)
+                # TODO save the model with highest performance
+                self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
+                                 global_step=self._current_time_step)
+
+    def train_without_replaybuffer(self, states, actions, target_values, leniencies):
+
+        self._current_time_step += 1
+
+        if self._current_time_step == 1:
+            print('Training starts.')
+            self.sess.run(self.target_update_ops)
+
+        bt_sz = len(states)
+        actions_onehot = np.zeros((bt_sz, self.actions_n))
+        for i in range(bt_sz):
+            actions_onehot[i, actions[i]] = 1.
+
+        _, str_ = self.sess.run([self.train_op, self._merged_summary], feed_dict={self._state: states,
+                                                self._actions_onehot: actions_onehot,
+                                                self._td_targets: target_values,
+                                                self._leniencies: leniencies})
+
+        self._summary_writer.add_summary(str_, self._current_time_step)
+
+        # update target_net
+        if self._use_tau:
+            self.sess.run(self.target_update_ops)
+        else:
+            if self._current_time_step % self._target_net_update_freq == 0:
+                self.sess.run(self.target_update_ops)
+
+        # save model
+        if self._auto_save:
+            if self._current_time_step % self.save_freq == 0:
+
+                # TODO save the model with highest performance
+                self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
+                                 global_step=self._current_time_step)
+
+    def save_model(self):
+        self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
+                         global_step=self._current_time_step)
 
     def load_model(self):
         self._saver.restore(self.sess, tf.train.latest_checkpoint(self.savedir))

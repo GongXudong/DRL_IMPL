@@ -6,7 +6,9 @@ import time
 
 TRAIN_EPISODES = 5000
 
+TRAIN = True
 TRAIN = False
+
 TEST_NUM = 10
 
 
@@ -14,12 +16,12 @@ if __name__ == '__main__':
     env = CMOTP()
     agent1 = LenientDQNAgent(env, [256, 256], 'LenientAgent1',
                              learning_rate=1e-4, replay_memory_size=100000,
-                             targetnet_update_freq=5000,
+                             use_tau=True, tau=1e-3,
                              logdir='logs1', savedir='save1')
 
-    agent2 = LenientDQNAgent(env, [256, 256], 'LenientAgent1',
+    agent2 = LenientDQNAgent(env, [256, 256], 'LenientAgent2',
                              learning_rate=1e-4, replay_memory_size=100000,
-                             targetnet_update_freq=5000,
+                             use_tau=True, tau=1e-3,
                              logdir='logs2', savedir='save2')
     print('after init')
 

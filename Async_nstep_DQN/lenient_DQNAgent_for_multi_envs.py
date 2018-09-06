@@ -1,21 +1,23 @@
 
+import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.layers as layers
-import numpy as np
 import random
 from common.schedules import LinearSchedule
-from common.replay_buffer import ReplayBuffer
 
+from Lenient.temperature_record import Temp_record
+from Lenient.replay_buffer_lenient import ReplayBuffer
+from Lenient.leniency_calculator import LeniencyCalculator
 
-class DQNAgent(object):
-    """
-    refs: https://github.com/skumar9876/Hierarchical-DQN/blob/master/dqn.py
-    """
-    def __init__(self, states_n: tuple, actions_n: int, hidden_layers: list, scope_name: str,
+class LenientDQNAgent(object):
+
+    def __init__(self, env, env_num, hidden_layers: list, scope_name: str,
                  sess=None, learning_rate=1e-4,
                  discount=0.98, replay_memory_size=100000, batch_size=32, begin_train=1000,
-                 targetnet_update_freq=1000, epsilon_start=1.0, epsilon_end=0.1, epsilon_decay_step=50000,
-                 seed=1, logdir='logs', savedir='save', save_freq=10000, use_tau=False, tau=0.001):
+                 targetnet_update_freq=1000,
+                 seed=1, logdir='logs',
+                 savedir='save', auto_save=True, save_freq=10000,
+                 use_tau=False, tau=0.001):
         """
 
         :param states_n: tuple
@@ -35,14 +37,13 @@ class DQNAgent(object):
         :param seed: int
         :param logdir: str
         """
-        self.states_n = states_n
-        self.actions_n = actions_n
+        self.states_n = env.observation_space.shape
+        self.actions_n = env.action_space.n
         self._hidden_layers = hidden_layers
         self._scope_name = scope_name
         self.lr = learning_rate
         self._target_net_update_freq = targetnet_update_freq
         self._current_time_step = 0
-        self._epsilon_schedule = LinearSchedule(epsilon_decay_step, epsilon_end, epsilon_start)
         self._train_batch_size = batch_size
         self._begin_train = begin_train
         self._gamma = discount
@@ -50,6 +51,7 @@ class DQNAgent(object):
         self._use_tau = use_tau
         self._tau = tau
 
+        self._auto_save = auto_save
         self.savedir = savedir
         self.save_freq = save_freq
 
@@ -58,6 +60,12 @@ class DQNAgent(object):
         self._replay_buffer = ReplayBuffer(replay_memory_size)
 
         self._seed(seed)
+
+        # leniency part
+        self.temp_recorders = [Temp_record(tuple(env.observation_space.high + 1) + (env.action_space.n, ), beta_len=1500)
+                               for _ in range(env_num)]
+        self.leniency_calculator = LeniencyCalculator(K=2.) # K=1.0 2.0 3.0
+        self.ts_greedy_coeff = 1. # 0.25 0.5 1.0
 
         with tf.Graph().as_default():
             self._build_graph()
@@ -88,7 +96,6 @@ class DQNAgent(object):
 
     def _build_graph(self):
         self._state = tf.placeholder(dtype=tf.float32, shape=(None, ) + self.states_n, name='state_input')
-
         with tf.variable_scope(self._scope_name):
             self._q_values = self._q_network(self._state, self._hidden_layers, self.actions_n, 'q_network', True)
             self._target_q_values = self._q_network(self._state, self._hidden_layers, self.actions_n, 'target_q_network', False)
@@ -98,7 +105,21 @@ class DQNAgent(object):
             self._td_targets = tf.placeholder(dtype=tf.float32, shape=(None, ), name='td_targets')
             self._q_values_pred = tf.reduce_sum(self._q_values * self._actions_onehot, axis=1)
 
-            self._error = tf.abs(self._q_values_pred - self._td_targets)
+            # lenient
+            self._leniencies = tf.placeholder(dtype=tf.float32, shape=(None, ), name='leniencies')
+            # deltas = self._q_values_pred - self._td_targets
+            deltas = self._td_targets - self._q_values_pred
+
+            batch_size = tf.shape(self._td_targets)[0]
+            rand_x = tf.random_uniform((batch_size, ), minval=0., maxval=1., dtype=tf.float32)
+
+            cond = tf.logical_or(rand_x > self._leniencies, deltas > 0)
+
+            zeros = tf.zeros_like(rand_x)
+
+            real_deltas = tf.where(cond, deltas, zeros)
+
+            self._error = tf.abs(real_deltas)
             quadratic_part = tf.clip_by_value(self._error, 0.0, 1.0)
             linear_part = self._error - quadratic_part
             self._loss = tf.reduce_mean(0.5 * tf.square(quadratic_part) + linear_part)
@@ -129,17 +150,12 @@ class DQNAgent(object):
                                                                     tf.multiply(var, self._tau)))
                 self.target_update_ops = tf.group(*self.target_update_ops)
 
-    def choose_action(self, state, epsilon=None):
-        """
-        for one agent
-        :param state:
-        :param epsilon:
-        :return:
-        """
-        if epsilon is not None:
-            epsilon_used = epsilon
+    def choose_action(self, state, env_no, epsilon=None):
+        if epsilon is None:
+            epsilon_used = pow(self.temp_recorders[env_no].get_state_temp(state), self.ts_greedy_coeff)
         else:
-            epsilon_used = self._epsilon_schedule.value(self._current_time_step)
+            epsilon_used = epsilon
+
         if np.random.random() < epsilon_used:
             return np.random.randint(0, self.actions_n)
         else:
@@ -147,35 +163,13 @@ class DQNAgent(object):
 
             return np.argmax(q_values[0])
 
-    def choose_actions(self, states, epsilons=None):
-        """
-        for multi-agent
-        :param states:
-        :param epsilon:
-        :return:
-        """
-        if epsilons is not None:
-            epsilons_used = epsilons
-        else:
-            epsilons_used = self._epsilon_schedule.value(self._current_time_step)
-
-        actions = []
-        for i, state in enumerate(states):
-            if np.random.random() < epsilons_used[i]:
-                actions.append(np.random.randint(0, self.actions_n))
-            else:
-                q_values = self.sess.run(self._q_values, feed_dict={self._state: state[None]})
-
-                actions.append(np.argmax(q_values[0]))
-
-        return actions
 
     def check_network_output(self, state):
         q_values = self.sess.run(self._q_values, feed_dict={self._state: state[None]})
         print(q_values[0])
 
-    def store(self, state, action, reward, next_state, terminate):
-        self._replay_buffer.add(state, action, reward, next_state, terminate)
+    def store(self, state, action, reward, next_state, terminate, leniency):
+        self._replay_buffer.add(state, action, reward, next_state, terminate, leniency)
 
     def get_max_target_Q_s_a(self, next_states):
         next_state_q_values = self.sess.run(self._q_values, feed_dict={self._state: next_states})
@@ -190,6 +184,7 @@ class DQNAgent(object):
         next_state_max_q_values = np.sum(next_state_target_q_values * next_select_actions_onehot, axis=1)
         return next_state_max_q_values
 
+
     def train(self):
 
         self._current_time_step += 1
@@ -199,7 +194,7 @@ class DQNAgent(object):
             self.sess.run(self.target_update_ops)
 
         if self._current_time_step > self._begin_train:
-            states, actions, rewards, next_states, terminates = self._replay_buffer.sample(batch_size=self._train_batch_size)
+            states, actions, rewards, next_states, terminates, leniencies = self._replay_buffer.sample(batch_size=self._train_batch_size)
 
             actions_onehot = np.zeros((self._train_batch_size, self.actions_n))
             for i in range(self._train_batch_size):
@@ -219,7 +214,8 @@ class DQNAgent(object):
 
             _, str_ = self.sess.run([self.train_op, self._merged_summary], feed_dict={self._state: states,
                                                     self._actions_onehot: actions_onehot,
-                                                    self._td_targets: td_targets})
+                                                    self._td_targets: td_targets,
+                                                    self._leniencies: leniencies})
 
             self._summary_writer.add_summary(str_, self._current_time_step)
 
@@ -231,13 +227,14 @@ class DQNAgent(object):
                 self.sess.run(self.target_update_ops)
 
         # save model
-        if self._current_time_step % self.save_freq == 0:
+        if self._auto_save:
+            if self._current_time_step % self.save_freq == 0:
 
-            # TODO save the model with highest performance
-            self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
-                             global_step=self._current_time_step)
+                # TODO save the model with highest performance
+                self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
+                                 global_step=self._current_time_step)
 
-    def train_without_replaybuffer(self, states, actions, target_values):
+    def train_without_replaybuffer(self, states, actions, target_values, leniencies):
 
         self._current_time_step += 1
 
@@ -252,7 +249,8 @@ class DQNAgent(object):
 
         _, str_ = self.sess.run([self.train_op, self._merged_summary], feed_dict={self._state: states,
                                                 self._actions_onehot: actions_onehot,
-                                                self._td_targets: target_values})
+                                                self._td_targets: target_values,
+                                                self._leniencies: leniencies})
 
         self._summary_writer.add_summary(str_, self._current_time_step)
 
@@ -264,11 +262,16 @@ class DQNAgent(object):
                 self.sess.run(self.target_update_ops)
 
         # save model
-        if self._current_time_step % self.save_freq == 0:
+        if self._auto_save:
+            if self._current_time_step % self.save_freq == 0:
 
-            # TODO save the model with highest performance
-            self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
-                             global_step=self._current_time_step)
+                # TODO save the model with highest performance
+                self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
+                                 global_step=self._current_time_step)
+
+    def save_model(self):
+        self._saver.save(sess=self.sess, save_path=self.savedir + '/my-model',
+                         global_step=self._current_time_step)
 
     def load_model(self):
         self._saver.restore(self.sess, tf.train.latest_checkpoint(self.savedir))
@@ -277,4 +280,9 @@ class DQNAgent(object):
         tf.set_random_seed(lucky_number)
         np.random.seed(lucky_number)
         random.seed(lucky_number)
+
+
+
+
+
 
