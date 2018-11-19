@@ -1,3 +1,5 @@
+#coding=utf-8
+
 import gym
 from enum import Enum
 import numpy as np
@@ -14,15 +16,111 @@ class CMOTP(gym.Env):
 
     GRASP_STATE = Enum('GRASP_STATE', ('FREE', 'GRASPING_LEFT', 'GRASPING_RIGHT'))
 
+    def __init3__(self):
+        self.move_delta = [(0, 0), (-1, 0), (0, 1), (1, 0), (0, -1)]
+        self.viewer = None
+        self.action_space = gym.spaces.Discrete(5)
+        self.observation_space = gym.spaces.Box(low=np.array([0, 0, 1, 0, 0, 1]), high=np.array([11, 11, 3, 11, 11, 3]),
+                                                dtype=np.int32)
+
+
+    def reset3(self):
+        """
+        average episode length with range strategy is *****.
+        :return:
+        """
+        # 1 -> Agent1, 2 -> Agent2, 0 -> passibal region, -1 -> walls, 3 -> goods
+        self.map = [[-1, -1, -1, 0, 0, 0, 0, 0, -1, -1, -1, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, -1, -1, -1, 0, 0, 0, -1, -1, -1, -1, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, -1, -1, -1, -1, -1, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, -1]]
+        self.map_size = (len(self.map), len(self.map[0]))
+        self.home_region = [(0, 3), (0, 4), (0, 5), (0, 6), (0, 7)]
+        return np.float32(np.array((11, 0, self.GRASP_STATE.FREE.value, 11, 10, self.GRASP_STATE.FREE.value))), \
+               np.float32(np.array((11, 0, self.GRASP_STATE.FREE.value, 11, 10, self.GRASP_STATE.FREE.value)))
+
     def __init__(self):
+        self.move_delta = [(0, 0), (-1, 0), (0, 1), (1, 0), (0, -1)]
+        self.viewer = None
+        self.action_space = gym.spaces.Discrete(5)
+        self.observation_space = gym.spaces.Box(low=np.array([0, 0, 1, 0, 0, 1]), high=np.array([11, 11, 3, 11, 11, 3]),
+                                                dtype=np.int32)
+
+    def reset(self):
+        """
+        average episode length with range strategy is *****.
+        :return:
+        """
+        # 1 -> Agent1, 2 -> Agent2, 0 -> passibal region, -1 -> walls, 3 -> goods
+        self.map = [[-1, -1, -1, 0, 0, 0, 0, 0, -1, -1, -1, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, -1, -1, -1, -1, 0, 0, 0, -1, -1, -1, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, -1, -1, -1, -1, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, -1]]
+        self.map_size = (len(self.map), len(self.map[0]))
+        self.home_region = [(0, 3), (0, 4), (0, 5), (0, 6), (0, 7)]
+        return np.float32(np.array((11, 0, self.GRASP_STATE.FREE.value, 11, 10, self.GRASP_STATE.FREE.value))), \
+               np.float32(np.array((11, 0, self.GRASP_STATE.FREE.value, 11, 10, self.GRASP_STATE.FREE.value)))
+
+
+    def __init2__(self):
+        self.move_delta = [(0, 0), (-1, 0), (0, 1), (1, 0), (0, -1)]
+        self.viewer = None
+        self.action_space = gym.spaces.Discrete(5)
+        self.observation_space = gym.spaces.Box(low=np.array([0, 0, 1, 0, 0, 1]), high=np.array([15, 15, 3, 15, 15, 3]),
+                                                dtype=np.int32)
+
+
+    def reset2(self):
+        """
+        average episode length with range strategy is *****.
+        :return:
+        """
+        # 1 -> Agent1, 2 -> Agent2, 0 -> passibal region, -1 -> walls, 3 -> goods
+        self.map = [[-1, -1, -1, -1, -1, 0, 0, 0, 0, 0, -1, -1, -1, -1, -1, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, -1, -1, -1, -1, -1, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, -1, -1, -1, -1, -1, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, -1, -1, -1, -1, -1, -1, -1, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1],
+                    [-1, -1, -1, -1, -1, -1, -1, 0, -1, -1, -1, -1, -1, -1, -1, -1],
+                    [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, -1]]
+        self.map_size = (len(self.map), len(self.map[0]))
+        self.home_region = [(0, 5), (0, 6), (0, 7), (0, 8), (0, 9)]
+        return np.float32(np.array((15, 0, self.GRASP_STATE.FREE.value, 15, 14, self.GRASP_STATE.FREE.value))), \
+               np.float32(np.array((15, 0, self.GRASP_STATE.FREE.value, 15, 14, self.GRASP_STATE.FREE.value)))
+
+    def __init1__(self):
         self.move_delta = [(0, 0), (-1, 0), (0, 1), (1, 0), (0, -1)]
         self.viewer = None
         self.action_space = gym.spaces.Discrete(5)
         self.observation_space = gym.spaces.Box(low=np.array([0, 0, 1, 0, 0, 1]), high=np.array([5, 6, 3, 5, 6, 3]),
                                                 dtype=np.int32)
 
-
-    def reset(self):
+    def reset1(self):
         # 1 -> Agent1, 2 -> Agent2, 0 -> passibal region, -1 -> walls, 3 -> goods
         self.map = [[0, 0, 0, 0, 0, 0, 0],
                     [0, 0, 0, -1, 0, 0, 0],

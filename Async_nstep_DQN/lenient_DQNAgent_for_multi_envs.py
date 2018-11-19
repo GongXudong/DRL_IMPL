@@ -5,7 +5,7 @@ import tensorflow.contrib.layers as layers
 import random
 from common.schedules import LinearSchedule
 
-from Lenient.temperature_record import Temp_record
+from Lenient.temperature_record import Temp_record_with_dict
 from Lenient.replay_buffer_lenient import ReplayBuffer
 from Lenient.leniency_calculator import LeniencyCalculator
 
@@ -59,10 +59,10 @@ class LenientDQNAgent(object):
 
         self._replay_buffer = ReplayBuffer(replay_memory_size)
 
-        self._seed(seed)
+        # self._seed(seed)
 
         # leniency part
-        self.temp_recorders = [Temp_record(tuple(env.observation_space.high + 1) + (env.action_space.n, ), beta_len=1500)
+        self.temp_recorders = [Temp_record_with_dict(beta_len=1500)
                                for _ in range(env_num)]
         self.leniency_calculator = LeniencyCalculator(K=2.) # K=1.0 2.0 3.0
         self.ts_greedy_coeff = 1. # 0.25 0.5 1.0

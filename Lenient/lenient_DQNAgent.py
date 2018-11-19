@@ -5,7 +5,7 @@ import tensorflow.contrib.layers as layers
 import random
 from common.schedules import LinearSchedule
 
-from Lenient.temperature_record import Temp_record
+from Lenient.temperature_record import Temp_record, Temp_record_with_dict
 from Lenient.replay_buffer_lenient import ReplayBuffer
 from Lenient.leniency_calculator import LeniencyCalculator
 
@@ -17,7 +17,8 @@ class LenientDQNAgent(object):
                  targetnet_update_freq=1000,
                  seed=1, logdir='logs',
                  savedir='save', auto_save=True, save_freq=10000,
-                 use_tau=False, tau=0.001):
+                 use_tau=False, tau=0.001,
+                 ts_greedy_coeff=1.):
         """
 
         :param states_n: tuple
@@ -59,12 +60,14 @@ class LenientDQNAgent(object):
 
         self._replay_buffer = ReplayBuffer(replay_memory_size)
 
-        self._seed(seed)
+        # self._seed(seed)
 
         # leniency part
-        self.temp_recorder = Temp_record(tuple(env.observation_space.high + 1) + (env.action_space.n, ), beta_len=1500)
-        self.leniency_calculator = LeniencyCalculator(K=2.) # K=1.0 2.0 3.0
-        self.ts_greedy_coeff = 1. # 0.25 0.5 1.0
+        self.temp_recorder = Temp_record_with_dict(beta_len=1500)
+        # self.temp_recorder = Temp_record(tuple(env.observation_space.high + 1) + (env.action_space.n, ), beta_len=1500)
+
+        self.leniency_calculator = LeniencyCalculator(K=2.)  # K=1.0 2.0 3.0
+        self.ts_greedy_coeff = ts_greedy_coeff  # 0.25 0.5 1.0
 
         with tf.Graph().as_default():
             self._build_graph()
