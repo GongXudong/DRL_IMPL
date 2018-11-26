@@ -13,8 +13,9 @@ import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--env_num', help='environment number', type=int, default=50)
-parser.add_argument('--step_len', help='n_step length', type=int, default=1)
+parser.add_argument('--env_num', help='environment number', type=int, default=10)
+parser.add_argument('--step_len', help='n_step length', type=int, default=5)
+parser.add_argument('--random_seed', help='random seed', type=int, default=10)
 parser.add_argument('--train', help='train(1) or test(0)', type=int, default=1, choices=[0, 1])
 args = parser.parse_args()
 
@@ -31,12 +32,14 @@ GAMMA = 0.95
 
 STEP_N = args.step_len
 ENV_NUM = args.env_num
+RANDOM_SEED = args.random_seed
 
 TEST_NUM = 10
 TRAIN_NUM = 80000
 TRAIN_EPISODES = 5000 * ENV_NUM
 
 print('step_n: {}, env_num: {}'.format(STEP_N, ENV_NUM))
+
 
 def set_seed(lucky_number):
     tf.set_random_seed(lucky_number)
@@ -91,12 +94,13 @@ def test(ag1, ag2, render=False, load_model=False):
 def main():
     env = MultiEnvRunnerWrapper(ENV_NUM, CMOTP)
 
-    lucky_no = 5
+    lucky_no = RANDOM_SEED
     set_seed(lucky_no)
 
     agent1 = LenientDQNAgent(env.envs[0], ENV_NUM, [256, 256], 'LenientAgent1',
                              learning_rate=1e-4,
                              use_tau=True, tau=1e-3,
+                             mu=0.999,
                              logdir='logs/logs1_{}_{}'.format(ENV_NUM, STEP_N),
                              savedir='save/save1_{}_{}'.format(ENV_NUM, STEP_N),
                              auto_save=False, discount=GAMMA)
@@ -104,6 +108,7 @@ def main():
     agent2 = LenientDQNAgent(env.envs[0], ENV_NUM, [256, 256], 'LenientAgent2',
                              learning_rate=1e-4,
                              use_tau=True, tau=1e-3,
+                             mu=0.999,
                              logdir='logs/logs2_{}_{}'.format(ENV_NUM, STEP_N),
                              savedir='save/save2_{}_{}'.format(ENV_NUM, STEP_N),
                              auto_save=False, discount=GAMMA)
@@ -194,7 +199,7 @@ def main():
 
                         print('train_num: {}, episode_cnt: {}, env: {} , mean_temp: {}, temp_len: {}, len: {} '.format(
                             *this_train_log))
-                        checked_temp = agent1.temp_recorders[j].show_temp(big=True, narrow=True)
+                        checked_temp = agent1.temp_recorders[j].show_temp(big=True, narrow=False)
                         temp_log[j].append(checked_temp)
 
                         if ep_cnt % 100 == 0:
@@ -264,7 +269,7 @@ def main():
         endtime = time.time()
         print('training time: {}'.format(endtime - begintime))
 
-        np.save('ep_len_{}_{}_{}.npy'.format(ENV_NUM, STEP_N, lucky_no), ep_len_log)
+        # np.save('ep_len_{}_{}_{}.npy'.format(ENV_NUM, STEP_N, lucky_no), ep_len_log)
 
         train_log = np.array(train_log)
         np.save('train_log_{}_{}_{}.npy'.format(ENV_NUM, STEP_N, lucky_no), train_log)

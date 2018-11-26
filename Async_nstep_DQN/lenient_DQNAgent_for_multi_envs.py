@@ -15,6 +15,7 @@ class LenientDQNAgent(object):
                  sess=None, learning_rate=1e-4,
                  discount=0.98, replay_memory_size=100000, batch_size=32, begin_train=1000,
                  targetnet_update_freq=1000,
+                 mu=0.999,
                  seed=1, logdir='logs',
                  savedir='save', auto_save=True, save_freq=10000,
                  use_tau=False, tau=0.001):
@@ -62,7 +63,7 @@ class LenientDQNAgent(object):
         # self._seed(seed)
 
         # leniency part
-        self.temp_recorders = [Temp_record_with_dict(beta_len=1500)
+        self.temp_recorders = [Temp_record_with_dict(beta_len=1500, u=mu)
                                for _ in range(env_num)]
         self.leniency_calculator = LeniencyCalculator(K=2.) # K=1.0 2.0 3.0
         self.ts_greedy_coeff = 1. # 0.25 0.5 1.0

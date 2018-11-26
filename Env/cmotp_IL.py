@@ -16,7 +16,7 @@ class CMOTP(gym.Env):
 
     GRASP_STATE = Enum('GRASP_STATE', ('FREE', 'GRASPING_LEFT', 'GRASPING_RIGHT'))
 
-    def __init3__(self):
+    def __init__(self):
         self.move_delta = [(0, 0), (-1, 0), (0, 1), (1, 0), (0, -1)]
         self.viewer = None
         self.action_space = gym.spaces.Discrete(5)
@@ -24,7 +24,7 @@ class CMOTP(gym.Env):
                                                 dtype=np.int32)
 
 
-    def reset3(self):
+    def reset(self):
         """
         average episode length with range strategy is *****.
         :return:
@@ -47,14 +47,14 @@ class CMOTP(gym.Env):
         return np.float32(np.array((11, 0, self.GRASP_STATE.FREE.value, 11, 10, self.GRASP_STATE.FREE.value))), \
                np.float32(np.array((11, 0, self.GRASP_STATE.FREE.value, 11, 10, self.GRASP_STATE.FREE.value)))
 
-    def __init__(self):
+    def __init3__(self):
         self.move_delta = [(0, 0), (-1, 0), (0, 1), (1, 0), (0, -1)]
         self.viewer = None
         self.action_space = gym.spaces.Discrete(5)
         self.observation_space = gym.spaces.Box(low=np.array([0, 0, 1, 0, 0, 1]), high=np.array([11, 11, 3, 11, 11, 3]),
                                                 dtype=np.int32)
 
-    def reset(self):
+    def reset3(self):
         """
         average episode length with range strategy is *****.
         :return:
