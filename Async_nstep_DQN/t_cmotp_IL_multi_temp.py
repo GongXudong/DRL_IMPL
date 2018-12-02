@@ -15,11 +15,11 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument('--env_num', help='environment number', type=int, default=10)
 parser.add_argument('--step_len', help='n_step length', type=int, default=5)
-parser.add_argument('--random_seed', help='random seed', type=int, default=10)
+parser.add_argument('--random_seed', help='random seed', type=int, default=107)
+parser.add_argument('--max_u', help='max u', type=float, default=0.999)
+parser.add_argument('--train_times', help='train times', type=int, default=5000)
 parser.add_argument('--train', help='train(1) or test(0)', type=int, default=1, choices=[0, 1])
 args = parser.parse_args()
-
-
 
 DEBUG = False
 
@@ -35,8 +35,9 @@ ENV_NUM = args.env_num
 RANDOM_SEED = args.random_seed
 
 TEST_NUM = 10
-TRAIN_NUM = 80000
-TRAIN_EPISODES = 5000 * ENV_NUM
+TRAIN_TIMES = args.train_times
+MAX_U = args.max_u
+TRAIN_EPISODES = TRAIN_TIMES * ENV_NUM
 
 print('step_n: {}, env_num: {}'.format(STEP_N, ENV_NUM))
 
@@ -100,17 +101,17 @@ def main():
     agent1 = LenientDQNAgent(env.envs[0], ENV_NUM, [256, 256], 'LenientAgent1',
                              learning_rate=1e-4,
                              use_tau=True, tau=1e-3,
-                             mu=0.999,
-                             logdir='logs/logs1_{}_{}'.format(ENV_NUM, STEP_N),
-                             savedir='save/save1_{}_{}'.format(ENV_NUM, STEP_N),
+                             mu=MAX_U,
+                             logdir='logs/logs1_{}_{}_{}_{}'.format(ENV_NUM, STEP_N, RANDOM_SEED, TRAIN_TIMES),
+                             savedir='save/save1_{}_{}_{}_{}'.format(ENV_NUM, STEP_N, RANDOM_SEED, TRAIN_TIMES),
                              auto_save=False, discount=GAMMA)
 
     agent2 = LenientDQNAgent(env.envs[0], ENV_NUM, [256, 256], 'LenientAgent2',
                              learning_rate=1e-4,
                              use_tau=True, tau=1e-3,
-                             mu=0.999,
-                             logdir='logs/logs2_{}_{}'.format(ENV_NUM, STEP_N),
-                             savedir='save/save2_{}_{}'.format(ENV_NUM, STEP_N),
+                             mu=MAX_U,
+                             logdir='logs/logs2_{}_{}_{}_{}'.format(ENV_NUM, STEP_N, RANDOM_SEED, TRAIN_TIMES),
+                             savedir='save/save2_{}_{}_{}_{}'.format(ENV_NUM, STEP_N, RANDOM_SEED, TRAIN_TIMES),
                              auto_save=False, discount=GAMMA)
     print('after init')
     begintime = time.time()
@@ -267,15 +268,23 @@ def main():
             train_num += 1
 
         endtime = time.time()
-        print('training time: {}'.format(endtime - begintime))
+        print('num_env: {}, n_step: {}, rand_seed: {}, episodes: {}, training time: {}'.format(
+            ENV_NUM, STEP_N, RANDOM_SEED, TRAIN_TIMES, endtime - begintime))
+
+        with open('./train_log.txt', 'a') as f:
+            f.write('NoERM num_env: {}, n_step: {}, rand_seed: {}, episodes: {}, training time: {}'.format(
+                ENV_NUM, STEP_N, RANDOM_SEED, TRAIN_TIMES, endtime - begintime) + '\n')
 
         # np.save('ep_len_{}_{}_{}.npy'.format(ENV_NUM, STEP_N, lucky_no), ep_len_log)
 
         train_log = np.array(train_log)
-        np.save('train_log_{}_{}_{}.npy'.format(ENV_NUM, STEP_N, lucky_no), train_log)
+        np.save('train_log_{}_{}_{}_{}.npy'.format(ENV_NUM, STEP_N, lucky_no, TRAIN_TIMES), train_log)
 
         temp_log = np.array(temp_log)
-        np.save('temp_log_{}_{}_{}.npy'.format(ENV_NUM, STEP_N, lucky_no), temp_log)
+        np.save('temp_log_{}_{}_{}_{}.npy'.format(ENV_NUM, STEP_N, lucky_no, TRAIN_TIMES), temp_log)
+
+        agent1.close()
+        agent2.close()
 
     else:
         test(agent1, agent2, render=True, load_model=True)

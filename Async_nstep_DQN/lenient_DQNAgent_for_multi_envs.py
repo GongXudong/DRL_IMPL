@@ -282,6 +282,9 @@ class LenientDQNAgent(object):
         np.random.seed(lucky_number)
         random.seed(lucky_number)
 
+    def close(self):
+        self.sess.close()
+        self._summary_writer.close()
 
 
 
